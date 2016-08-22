@@ -5,7 +5,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/reconquest/hierr"
+	"github.com/reconquest/hierr-go"
 	"github.com/stretchr/testify/assert"
 )
 

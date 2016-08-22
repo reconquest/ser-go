@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/reconquest/hierr"
+	"github.com/reconquest/hierr-go"
 )
 
 type (
