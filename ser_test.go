@@ -12,40 +12,38 @@ import (
 func TestError_HierarchicalError_ReturnsHierarchicalRepresentation(t *testing.T) {
 	test := assert.New(t)
 
-	err := &Error{
-		Message: "1",
-		Nested: []interface{}{
-			&Error{
-				Message: "2",
-				Nested: []interface{}{
-					&Error{
-						Message: "a",
-						Nested:  "b",
-					},
-					&Error{
-						Message: "c",
-						Nested:  "d",
-					},
-				},
-			},
-			&Error{
-				Message: "5",
-				Nested:  errors.New("6"),
-			},
-			&Error{
-				Message: "7",
-				Nested:  hierr.Errorf(errors.New("10"), "9"),
-			},
-		},
-	}
+	err := Push(
+		"1",
+		Push(
+			"2",
+			Push(
+				"c",
+				"d",
+			),
+			Push(
+				"a",
+				Push("a-1"),
+				Push("a-2"),
+			),
+		),
+		Push(
+			"5",
+			errors.New("6"),
+		),
+		Push(
+			"7",
+			hierr.Errorf(errors.New("10"), "9"),
+		),
+	)
 
 	test.Equal(`1
 ├─ 2
-│  ├─ a
-│  │  └─ b
+│  ├─ c
+│  │  └─ d
 │  │
-│  └─ c
-│     └─ d
+│  └─ a
+│     ├─ a-1
+│     └─ a-2
 │
 ├─ 5
 │  └─ 6
@@ -60,10 +58,10 @@ func TestError_LinearError_ReturnsLinearRepresentation(t *testing.T) {
 
 	err := Error{
 		Message: "1",
-		Nested: []interface{}{
+		Nested: []hierr.NestedError{
 			Error{
 				Message: "2",
-				Nested: []interface{}{
+				Nested: []hierr.NestedError{
 					Error{
 						Message: "a",
 						Nested:  "b",
@@ -99,7 +97,7 @@ func TestError_Push_AddsNestedItem(t *testing.T) {
 
 	test.EqualValues(Error{
 		Message: "1",
-		Nested: []interface{}{
+		Nested: []hierr.NestedError{
 			"2", "3", "4",
 		},
 	}, err)

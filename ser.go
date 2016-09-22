@@ -31,6 +31,22 @@ func (err Error) HierarchicalError() string {
 	)
 }
 
+func (err Error) GetNested() []hierr.NestedError {
+	children, ok := err.Nested.([]hierr.NestedError)
+	if !ok {
+		children = []hierr.NestedError{}
+		if err.Nested != nil {
+			children = append(children, hierr.NestedError(err.Nested))
+		}
+	}
+
+	return children
+}
+
+func (err Error) GetMessage() string {
+	return err.Message
+}
+
 // LinearError returns linear representation of errors
 func (err Error) LinearError() string {
 	return linearalize(err)
@@ -43,16 +59,10 @@ func (err Error) Error() string {
 
 // Push specified nested errors into given error.
 func (err *Error) Push(nested ...interface{}) {
-	children, ok := err.Nested.([]interface{})
-	if !ok {
-		children = []interface{}{}
-		if err.Nested != nil {
-			children = append(children, err.Nested)
-		}
-	}
+	children := err.GetNested()
 
 	for _, item := range nested {
-		children = append(children, interface{}(item))
+		children = append(children, hierr.NestedError(item))
 	}
 
 	err.Nested = children
@@ -62,7 +72,7 @@ func (err *Error) Push(nested ...interface{}) {
 func Push(top interface{}, nested ...interface{}) Error {
 	err, ok := top.(Error)
 	if !ok {
-		return Error{Message: fmt.Sprint(top), Nested: nested}
+		err = Error{Message: fmt.Sprint(top)}
 	}
 
 	err.Push(nested...)
@@ -98,28 +108,20 @@ func SerializeError(err error, mode Mode) string {
 func Errorf(err interface{}, format string, arg ...interface{}) Error {
 	return Error{
 		Message: fmt.Sprintf(format, arg...),
-		Nested:  interface{}(err),
+		Nested:  hierr.NestedError(err),
 	}
-}
-
-func (err Error) GetNested() []interface{} {
-	if errs, ok := err.Nested.([]interface{}); ok {
-		return errs
-	}
-
-	return []interface{}{err.Nested}
 }
 
 func linearalize(err error) string {
 	var nested interface{}
 	var message string
 
-	if packageError, ok := err.(Error); ok {
-		nested = packageError.Nested
-		message = packageError.Message
-	} else if hierrError, ok := err.(hierr.Error); ok {
-		nested = hierrError.Nested
-		message = hierrError.Message
+	if hierarchical, ok := err.(hierr.HierarchicalError); ok {
+		nested = hierarchical.GetNested()
+		message = hierarchical.GetMessage()
+	} else if hierarchical, ok := err.(hierr.Error); ok {
+		nested = hierarchical.GetNested()
+		message = hierarchical.GetMessage()
 	} else {
 		return err.Error()
 	}
@@ -129,7 +131,7 @@ func linearalize(err error) string {
 	case error:
 		linear = linearalize(typed)
 
-	case []interface{}:
+	case []hierr.NestedError:
 		linearItems := []string{}
 
 		for _, nestedItem := range typed {
