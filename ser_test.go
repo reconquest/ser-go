@@ -58,27 +58,27 @@ func TestError_LinearError_ReturnsLinearRepresentation(t *testing.T) {
 
 	err := Error{
 		Message: "1",
-		Nested: []hierr.NestedError{
+		Reason: []hierr.Reason{
 			Error{
 				Message: "2",
-				Nested: []hierr.NestedError{
+				Reason: []hierr.Reason{
 					Error{
 						Message: "a",
-						Nested:  "b",
+						Reason:  "b",
 					},
 					Error{
 						Message: "c",
-						Nested:  "d",
+						Reason:  "d",
 					},
 				},
 			},
 			Error{
 				Message: "5",
-				Nested:  errors.New("6"),
+				Reason:  errors.New("6"),
 			},
 			Error{
 				Message: "7",
-				Nested:  hierr.Errorf(errors.New("10"), "9"),
+				Reason:  hierr.Errorf(errors.New("10"), "9"),
 			},
 		},
 	}
@@ -86,18 +86,18 @@ func TestError_LinearError_ReturnsLinearRepresentation(t *testing.T) {
 	test.Equal(`1: 2: a: b; c: d; 5: 6; 7: 9: 10`, err.LinearError())
 }
 
-func TestError_Push_AddsNestedItem(t *testing.T) {
+func TestError_Push_AddsReasonItem(t *testing.T) {
 	test := assert.New(t)
 
 	err := Error{
 		Message: "1",
-		Nested:  "2",
+		Reason:  "2",
 	}
 	err.Push("3", "4")
 
 	test.EqualValues(Error{
 		Message: "1",
-		Nested: []hierr.NestedError{
+		Reason: []hierr.Reason{
 			"2", "3", "4",
 		},
 	}, err)

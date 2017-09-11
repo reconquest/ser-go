@@ -18,7 +18,7 @@ const (
 
 type Error struct {
 	Message string
-	Nested  interface{}
+	Reason  interface{}
 }
 
 // HierarchicalError returns hierarchical representation of errors
@@ -26,17 +26,17 @@ func (err Error) HierarchicalError() string {
 	return hierr.String(
 		hierr.Error{
 			Message: err.Message,
-			Nested:  err.Nested,
+			Reason:  err.Reason,
 		},
 	)
 }
 
-func (err Error) GetNested() []hierr.NestedError {
-	children, ok := err.Nested.([]hierr.NestedError)
+func (err Error) GetReasons() []hierr.Reason {
+	children, ok := err.Reason.([]hierr.Reason)
 	if !ok {
-		children = []hierr.NestedError{}
-		if err.Nested != nil {
-			children = append(children, hierr.NestedError(err.Nested))
+		children = []hierr.Reason{}
+		if err.Reason != nil {
+			children = append(children, hierr.Reason(err.Reason))
 		}
 	}
 
@@ -59,13 +59,13 @@ func (err Error) Error() string {
 
 // Push specified nested errors into given error.
 func (err *Error) Push(nested ...interface{}) {
-	children := err.GetNested()
+	children := err.GetReasons()
 
 	for _, item := range nested {
-		children = append(children, hierr.NestedError(item))
+		children = append(children, hierr.Reason(item))
 	}
 
-	err.Nested = children
+	err.Reason = children
 }
 
 // Push specified nested errors into specified error and return new error.
@@ -108,7 +108,7 @@ func SerializeError(err error, mode Mode) string {
 func Errorf(err interface{}, format string, arg ...interface{}) Error {
 	return Error{
 		Message: fmt.Sprintf(format, arg...),
-		Nested:  hierr.NestedError(err),
+		Reason:  hierr.Reason(err),
 	}
 }
 
@@ -117,10 +117,10 @@ func linearalize(err error) string {
 	var message string
 
 	if hierarchical, ok := err.(hierr.HierarchicalError); ok {
-		nested = hierarchical.GetNested()
+		nested = hierarchical.GetReasons()
 		message = hierarchical.GetMessage()
 	} else if hierarchical, ok := err.(hierr.Error); ok {
-		nested = hierarchical.GetNested()
+		nested = hierarchical.GetReasons()
 		message = hierarchical.GetMessage()
 	} else {
 		return err.Error()
@@ -131,7 +131,7 @@ func linearalize(err error) string {
 	case error:
 		linear = linearalize(typed)
 
-	case []hierr.NestedError:
+	case []hierr.Reason:
 		linearItems := []string{}
 
 		for _, nestedItem := range typed {
